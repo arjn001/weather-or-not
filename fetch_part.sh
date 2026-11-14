@@ -9,8 +9,9 @@
 # archive itself never touches the disk. Expect about 3.5 GB of images.
 #
 # The catch: a download that is unpacked on the fly cannot be resumed. If
-# the connection drops, run the same command again and it starts over.
-# Files that already arrived are simply written again.
+# the connection drops or hangs, this script notices and starts the part
+# over, up to three times. Files that already arrived are simply written
+# again.
 #
 # When it finishes, run:   python process_scenes.py
 
@@ -50,12 +51,29 @@ echo "Downloading and unpacking front camera only. This takes a while..."
 # differently. The leading * lets the pattern match whether or not the
 # paths inside the archive start with "./".
 if tar --version 2>/dev/null | grep -qi bsdtar; then
-  curl -f -L --progress-bar "$URL" | tar -xzf - -C "$DEST" \
-    --include '*samples/CAM_FRONT/*' --include '*sweeps/CAM_FRONT/*'
+  KEEP=(--include '*samples/CAM_FRONT/*' --include '*sweeps/CAM_FRONT/*')
 else
-  curl -f -L --progress-bar "$URL" | tar -xzf - -C "$DEST" \
-    --wildcards '*samples/CAM_FRONT/*' '*sweeps/CAM_FRONT/*'
+  KEEP=(--wildcards '*samples/CAM_FRONT/*' '*sweeps/CAM_FRONT/*')
 fi
+
+# --speed-limit and --speed-time make curl give up if less than 10 KB per
+# second arrives for a full minute. Without them a connection that goes
+# silent would hang forever with no error, which happened once on part 10.
+fetch_once() {
+  curl -f -L --progress-bar --speed-limit 10240 --speed-time 60 "$URL" \
+    | tar -xzf - -C "$DEST" "${KEEP[@]}"
+}
+
+ATTEMPT=1
+until fetch_once; do
+  if [ "$ATTEMPT" -ge 3 ]; then
+    echo "Download failed 3 times. Check the connection and run this again."
+    exit 1
+  fi
+  ATTEMPT=$((ATTEMPT + 1))
+  echo "Download was cut off. Starting part ${PART} over (attempt ${ATTEMPT} of 3)..."
+  sleep 5
+done
 
 AFTER=$(count_images)
 echo
