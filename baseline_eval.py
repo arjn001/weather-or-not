@@ -48,6 +48,11 @@ ATTACKS = {
     "offset -20%": lambda can: offset_attack(can, ATTACK_START, ATTACK_END, 0.80),
     "offset -30%": lambda can: offset_attack(can, ATTACK_START, ATTACK_END, 0.70),
     "offset -50%": lambda can: offset_attack(can, ATTACK_START, ATTACK_END, 0.50),
+    # Over-reporting. The camera reads a few percent fast on its own, so an
+    # attack in this direction first has to cancel that before it shows.
+    "offset +5%": lambda can: offset_attack(can, ATTACK_START, ATTACK_END, 1.05),
+    "offset +10%": lambda can: offset_attack(can, ATTACK_START, ATTACK_END, 1.10),
+    "offset +20%": lambda can: offset_attack(can, ATTACK_START, ATTACK_END, 1.20),
     "drift -1%/s": lambda can: drift_attack(can, ATTACK_START, ATTACK_END, -0.01),
     "drift -2%/s": lambda can: drift_attack(can, ATTACK_START, ATTACK_END, -0.02),
     "drift -5%/s": lambda can: drift_attack(can, ATTACK_START, ATTACK_END, -0.05),
