@@ -23,6 +23,7 @@ conda activate weather
 python check_data.py            # confirms the data is readable
 python kill_gate.py scene-0061  # camera vs CAN plot for one scene
 python kill_gate.py all         # every scene, plus out/kill_gate.csv
+python residual_report.py      # noise floor table and attack example figure
 ```
 
 Plots land in `out/`.
