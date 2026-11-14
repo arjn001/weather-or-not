@@ -40,8 +40,8 @@ def classify(description):
     """
     text = description.lower()
     night = has_word(text, "night")
-    wet_only = "after rain" in text or has_word(text, "wet")
     rain = has_word(text, "rain") and "after rain" not in text
+    wet_only = ("after rain" in text or has_word(text, "wet")) and not rain
     return {"night": night, "rain": rain, "wet_road": wet_only}
 
 
