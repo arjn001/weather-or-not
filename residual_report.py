@@ -30,6 +30,7 @@ from nuscenes.nuscenes import NuScenes
 
 from attacks import drift_attack, offset_attack, replay_attack
 from camera_cache import camera_motion_for_scene
+from detector import SMOOTH_FRAMES, rolling_median
 from residuals import compute_residuals
 from scene_io import find_scene, load_can_pose
 
@@ -44,21 +45,6 @@ ATTACK_START, ATTACK_END = 8.0, 16.0  # seconds into the scene
 OFFSET_FACTOR = 0.7  # report 30 percent less speed
 DRIFT_RATE = -0.05  # lose 5 percent more per second
 REPLAY_SOURCE = 0.0  # replay the scene's opening seconds
-
-# Residuals are also shown smoothed with a median over this many frames,
-# about one second. A median ignores single-frame spikes.
-SMOOTH_FRAMES = 12
-
-
-def rolling_median(x, width):
-    """Median of each frame and the frames just before it."""
-    out = np.full(len(x), np.nan)
-    for i in range(width - 1, len(x)):
-        window = x[i - width + 1 : i + 1]
-        if np.isfinite(window).any():
-            out[i] = np.nanmedian(window)
-    return out
-
 
 def clean_noise_table(nusc, nusc_can):
     """Size of the residuals on every scene with no attack present."""
