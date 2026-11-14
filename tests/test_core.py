@@ -164,3 +164,41 @@ def test_alarm_score_is_high_during_an_attack_and_low_otherwise():
     assert np.allclose(scores["speed"][well_inside], 0.3)
     assert np.allclose(scores["speed"][before], 0.0)
     assert np.allclose(scores["yaw"][np.isfinite(scores["yaw"])], 0.0)
+
+
+# ---------------------------------------------------------------- calibration
+
+def test_speed_scale_removes_a_steady_over_read():
+    can = fake_can(speed=10.0)
+    cam = fake_cam(can)
+    cam["speed"] = cam["speed"] * 1.04  # camera reads 4 percent fast
+
+    uncorrected = compute_residuals(cam, can)
+    corrected = compute_residuals(cam, can, speed_scale=1.04)
+    assert np.allclose(uncorrected["speed"], -0.04 / 1.04)
+    assert np.allclose(corrected["speed"], 0.0)
+
+
+def test_uncorrected_over_read_hides_a_matching_over_report():
+    # The blind direction: CAN inflated by exactly the camera's over-read
+    # looks like perfect agreement until the over-read is divided out.
+    can = fake_can(speed=10.0)
+    cam = fake_cam(can)
+    cam["speed"] = cam["speed"] * 1.04
+    bad, _ = offset_attack(can, 5, 15, 1.04)
+
+    inside = (compute_residuals(cam, bad)["t"] >= 5) & (compute_residuals(cam, bad)["t"] < 15)
+    assert np.allclose(compute_residuals(cam, bad)["speed"][inside], 0.0)
+    assert np.all(compute_residuals(cam, bad, speed_scale=1.04)["speed"][inside] > 0.03)
+
+
+def test_split_scenes_is_disjoint_and_complete():
+    from calibration import split_scenes
+
+    scenes = [{"name": f"scene-{i:04d}"} for i in (7, 3, 9, 1, 5)]
+    first, second = split_scenes(scenes)
+    names_a = {s["name"] for s in first}
+    names_b = {s["name"] for s in second}
+    assert names_a.isdisjoint(names_b)
+    assert names_a | names_b == {s["name"] for s in scenes}
+    assert abs(len(first) - len(second)) <= 1

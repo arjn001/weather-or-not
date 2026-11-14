@@ -42,7 +42,7 @@ def rolling_median(x, width):
     return out
 
 
-def alarm_scores(cam, can, smooth_frames=SMOOTH_FRAMES):
+def alarm_scores(cam, can, speed_scale=1.0, smooth_frames=SMOOTH_FRAMES):
     """
     Turn camera and CAN into per-frame alarm scores.
 
@@ -52,7 +52,7 @@ def alarm_scores(cam, can, smooth_frames=SMOOTH_FRAMES):
       yaw   : size of the smoothed yaw residual, rad/s
     The two channels are kept separate (brief section 6, lesson 2).
     """
-    res = compute_residuals(cam, can)
+    res = compute_residuals(cam, can, speed_scale)
     return {
         "t": res["t"],
         "speed": np.abs(rolling_median(res["speed"], smooth_frames)),

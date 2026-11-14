@@ -34,12 +34,16 @@ from scene_io import nearest_resample
 SPEED_FLOOR = 2.0  # m/s
 
 
-def compute_residuals(cam, can):
+def compute_residuals(cam, can, speed_scale=1.0):
     """
     Compare a camera motion estimate against a CAN stream.
 
     cam : dict from camera_motion_for_scene
     can : dict from load_can_pose, clean or attacked
+    speed_scale : how much the camera over-reads speed, e.g. 1.04 for 4
+        percent. Camera speed is divided by this before comparing. Get the
+        value from calibration.estimate_speed_scale. The default of 1.0
+        applies no correction.
 
     CAN is first brought onto the camera's timeline with nearest-neighbour
     resampling (brief section 6, lesson 4).
@@ -54,12 +58,13 @@ def compute_residuals(cam, can):
     can_speed = nearest_resample(can["utime"], can["speed"], cam["utime"])
     can_yaw = nearest_resample(can["utime"], can["yaw_rate"], cam["utime"])
 
-    ruler = np.maximum(np.maximum(np.abs(cam["speed"]), np.abs(can_speed)), SPEED_FLOOR)
+    cam_speed = cam["speed"] / speed_scale
+    ruler = np.maximum(np.maximum(np.abs(cam_speed), np.abs(can_speed)), SPEED_FLOOR)
     return {
         "t": (cam["utime"] - cam["first_frame_utime"]) / 1e6,
         "can_speed": can_speed,
         "can_yaw": can_yaw,
-        "speed": (can_speed - cam["speed"]) / ruler,
+        "speed": (can_speed - cam_speed) / ruler,
         "yaw": can_yaw - cam["yaw_rate"],
     }
 
