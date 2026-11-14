@@ -29,6 +29,8 @@ python process_scenes.py        # process and cache every scene on disk
 python kill_gate.py all         # camera vs CAN plot for every cached scene
 python residual_report.py       # noise floor table and attack example figure
 python baseline_eval.py         # AUROC of the threshold detector, clear weather
+python false_alarm_eval.py      # Step 3: false alarms in rain and at night
+python attribution_eval.py      # Step 4: nominal vs degraded vs attack classifier
 ```
 
 Plots and tables land in `out/`. `data/`, `index/` and `cache/` are not in
