@@ -20,12 +20,16 @@ badly that fails, and asks whether the two causes can be told apart.
 
 ```bash
 conda activate weather
-python check_data.py            # confirms the data is readable
-python kill_gate.py scene-0061  # camera vs CAN plot for one scene
-python kill_gate.py all         # every scene, plus out/kill_gate.csv
-python residual_report.py      # noise floor table and attack example figure
-python baseline_eval.py        # AUROC of the threshold detector, clear weather
-python -m pytest               # quick checks, about a second
+python -m pytest                # quick checks, a few seconds
+
+python build_index.py           # once: small per-scene index from the metadata
+bash fetch_part.sh 1            # download one dataset part, front camera only
+python process_scenes.py        # process and cache every scene on disk
+
+python kill_gate.py all         # camera vs CAN plot for every cached scene
+python residual_report.py       # noise floor table and attack example figure
+python baseline_eval.py         # AUROC of the threshold detector, clear weather
 ```
 
-Plots land in `out/`.
+Plots and tables land in `out/`. `data/`, `index/` and `cache/` are not in
+git and are rebuilt with the commands above.

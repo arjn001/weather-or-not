@@ -9,3 +9,4 @@ nuscenes/
 *.npz
 out/*.log
 cache/
+index/

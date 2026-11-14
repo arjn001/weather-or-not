@@ -27,17 +27,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from nuscenes.can_bus.can_bus_api import NuScenesCanBus
-from nuscenes.nuscenes import NuScenes
 from sklearn.metrics import roc_auc_score, roc_curve
 
 from attacks import drift_attack, offset_attack, replay_attack
 from camera_cache import camera_motion_for_scene
 from detector import alarm_scores
 from residuals import SPEED_FLOOR, resample_mask
-from scene_io import load_can_pose, nearest_resample
+from scene_io import DATA_ROOT, load_can_pose, nearest_resample
+from scene_sets import usable_scenes
 
-DATA_ROOT = "data/nuscenes"
-VERSION = "v1.0-mini"
 OUT_DIR = "out"
 
 # Every attack runs over the same stretch of each scene.
@@ -61,12 +59,7 @@ ATTACKS = {
 MIN_MOVING_SHARE = 0.5
 
 
-def is_clear_daytime(scene):
-    text = scene["description"].lower()
-    return "night" not in text and "rain" not in text
-
-
-def collect(nusc, nusc_can):
+def collect(nusc_can):
     """
     Gather alarm scores for clean frames and for each attack.
 
@@ -78,11 +71,9 @@ def collect(nusc, nusc_can):
     attacked = {name: {"speed": [], "yaw": []} for name in ATTACKS}
     used = []
 
-    for scene in nusc.scene:
-        if not is_clear_daytime(scene):
-            continue
+    for scene in usable_scenes(nusc_can, condition="clear"):
         name = scene["name"]
-        cam = camera_motion_for_scene(nusc, name)
+        cam = camera_motion_for_scene(name)
         can = load_can_pose(nusc_can, name)
 
         true_speed = nearest_resample(can["utime"], can["speed"], cam["utime"])
@@ -123,11 +114,11 @@ def detection_rate(clean_scores, attacked_scores, false_alarm_rate=0.05):
 
 
 def main():
-    nusc = NuScenes(version=VERSION, dataroot=DATA_ROOT, verbose=False)
     nusc_can = NuScenesCanBus(dataroot=DATA_ROOT)
-    clean, attacked, used = collect(nusc, nusc_can)
+    clean, attacked, used = collect(nusc_can)
 
-    print(f"clear daytime scenes with a moving car: {len(used)}  ({', '.join(used)})")
+    shown = ", ".join(used) if len(used) <= 12 else ", ".join(used[:12]) + ", ..."
+    print(f"clear daytime scenes with a moving car: {len(used)}  ({shown})")
     print(f"clean frames: {len(clean['speed'])}\n")
     print("attack           frames  AUROC speed  AUROC yaw  caught at 5% false alarms (speed)")
 
@@ -165,7 +156,7 @@ def main():
     ax.set_xlabel("false alarm rate (clean frames flagged)")
     ax.set_ylabel("detection rate (attacked frames flagged)")
     ax.set_title(f"Baseline threshold detector, speed channel\n"
-                 f"PRELIMINARY: {len(used)} clear daytime scenes from nuScenes-mini", fontsize=11)
+                 f"{len(used)} clear daytime scenes", fontsize=11)
     ax.legend(title="attack (AUROC)", frameon=False, fontsize=9, loc="lower right")
     ax.grid(alpha=0.25)
     ax.spines[["top", "right"]].set_visible(False)

@@ -5,7 +5,7 @@ Run it on one or more scenes:
     python kill_gate.py scene-0061
     python kill_gate.py scene-0061 scene-0103
 
-or on every scene in the dataset (takes about a minute):
+or on every scene that has been processed so far:
     python kill_gate.py all
 
 Each scene gets a figure in out/ with three panels on one time axis:
@@ -27,13 +27,10 @@ matplotlib.use("Agg")  # write image files, do not open windows
 import matplotlib.pyplot as plt
 import numpy as np
 from nuscenes.can_bus.can_bus_api import NuScenesCanBus
-from nuscenes.nuscenes import NuScenes
 
-from camera_motion import estimate_scene_motion
-from scene_io import find_scene, load_camera_frames, load_can_pose, nearest_resample
+from camera_cache import camera_motion_for_scene, is_cached
+from scene_io import DATA_ROOT, all_scene_names, load_can_pose, load_scene, nearest_resample
 
-DATA_ROOT = "data/nuscenes"
-VERSION = "v1.0-mini"
 OUT_DIR = "out"
 
 # A correlation only means something if the signal actually changes during
@@ -53,17 +50,18 @@ def correlation(a, b, ok):
     return float(np.corrcoef(a[ok], b[ok])[0, 1])
 
 
-def run_scene(nusc, nusc_can, scene_name):
-    utimes, paths, camera = load_camera_frames(nusc, scene_name)
-    cam = estimate_scene_motion(utimes, paths, camera)
+def run_scene(nusc_can, scene_name):
+    scene = load_scene(scene_name)
+    cam = camera_motion_for_scene(scene_name)
     can = load_can_pose(nusc_can, scene_name)
+    first_frame = cam["first_frame_utime"]
 
     # Put CAN on the camera's timeline so the two can be compared point by
     # point. Time is shown in seconds from the first camera frame.
     can_speed = nearest_resample(can["utime"], can["speed"], cam["utime"])
     can_yaw = nearest_resample(can["utime"], can["yaw_rate"], cam["utime"])
-    t = (cam["utime"] - utimes[0]) / 1e6
-    t_can = (can["utime"] - utimes[0]) / 1e6
+    t = (cam["utime"] - first_frame) / 1e6
+    t_can = (can["utime"] - first_frame) / 1e6
 
     speed_ok = np.isfinite(cam["speed"])
     yaw_ok = np.isfinite(cam["yaw_rate"])
@@ -71,8 +69,8 @@ def run_scene(nusc, nusc_can, scene_name):
 
     summary = {
         "scene": scene_name,
-        "description": find_scene(nusc, scene_name)["description"],
-        "frames": len(paths),
+        "description": scene["description"],
+        "frames": len(scene["utimes"]),
         "speed_corr": correlation(cam["speed"], can_speed, speed_ok)
         if swing(can_speed) >= MIN_SPEED_SWING else np.nan,
         # Typical camera speed divided by CAN speed. 1.0 would be perfect.
@@ -136,14 +134,13 @@ def main():
     if len(sys.argv) < 2:
         sys.exit("usage: python kill_gate.py <scene-name ... | all>")
 
-    nusc = NuScenes(version=VERSION, dataroot=DATA_ROOT, verbose=False)
     nusc_can = NuScenesCanBus(dataroot=DATA_ROOT)
     run_all = sys.argv[1] == "all"
-    names = [s["name"] for s in nusc.scene] if run_all else sys.argv[1:]
+    names = [n for n in all_scene_names() if is_cached(n)] if run_all else sys.argv[1:]
 
     rows = []
     for name in names:
-        row = run_scene(nusc, nusc_can, name)
+        row = run_scene(nusc_can, name)
         rows.append(row)
         print(
             f"{row['scene']}  speed corr {row['speed_corr']:5.2f}  "

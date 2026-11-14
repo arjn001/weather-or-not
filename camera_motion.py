@@ -27,6 +27,8 @@ FORWARD SPEED
 import cv2
 import numpy as np
 
+from camera_health import frame_appearance
+
 # --- Point tracking, used for rotation -------------------------------------
 MAX_CORNERS = 1500
 CORNER_QUALITY = 0.01
@@ -223,8 +225,11 @@ def estimate_scene_motion(utimes, paths, camera):
       n_tracks    : corner points followed across the image
       n_inliers   : of those, how many agreed with the rigid-scene fit
       road_match  : 0 to 1, how clearly one speed stood out (see RoadMatcher)
+      brightness, contrast, sharpness : appearance of the second frame of
+                    the pair (see camera_health.py)
     """
-    keys = ("utime", "dt", "yaw_rate", "speed", "n_tracks", "n_inliers", "road_match")
+    keys = ("utime", "dt", "yaw_rate", "speed", "n_tracks", "n_inliers", "road_match",
+            "brightness", "contrast", "sharpness")
     out = {k: [] for k in keys}
 
     prev_gray = cv2.imread(paths[0], cv2.IMREAD_GRAYSCALE)
@@ -253,6 +258,8 @@ def estimate_scene_motion(utimes, paths, camera):
         out["n_tracks"].append(len(pts_a))
         out["n_inliers"].append(n_inliers)
         out["road_match"].append(quality)
+        for name, value in frame_appearance(gray).items():
+            out[name].append(value)
         prev_gray, prev_detail = gray, detail
 
     return {k: np.array(v) for k, v in out.items()}

@@ -8,63 +8,66 @@ Two things come out of here:
 Timestamps everywhere are nuScenes "utime": microseconds since 1970. The
 camera and the CAN bus both use this clock, which is what lets us line them
 up later.
+
+Camera information comes from the small per-scene files in index/, written
+once by build_index.py. See that file for why we do not use the devkit for
+this.
 """
 
+import json
 import os
 
 import numpy as np
 from pyquaternion import Quaternion
 
-CAMERA = "CAM_FRONT"
+DATA_ROOT = "data/nuscenes"
+INDEX_DIR = "index"
 
 
-def find_scene(nusc, scene_name):
-    """Look a scene up by its name, e.g. 'scene-0061'."""
-    for scene in nusc.scene:
-        if scene["name"] == scene_name:
-            return scene
-    raise ValueError(f"No scene called {scene_name} in this dataset version")
+def all_scene_names():
+    """Every scene that has an index file, in name order."""
+    if not os.path.isdir(INDEX_DIR):
+        raise FileNotFoundError("No index/ folder. Run: python build_index.py")
+    return sorted(f[:-5] for f in os.listdir(INDEX_DIR) if f.endswith(".json"))
 
 
-def load_camera_frames(nusc, scene_name):
+def load_scene(scene_name):
     """
-    Return every front camera frame of a scene, oldest first.
+    Return what we know about a scene's front camera.
 
     nuScenes splits frames into "samples" (keyframes, about 2 per second,
-    the ones humans annotated) and "sweeps" (everything in between). For
-    optical flow we want all of them, because the less the image changes
-    between two frames, the easier it is to follow points across them.
+    the ones humans annotated) and "sweeps" (everything in between). The
+    index holds both, merged and sorted by time, because for optical flow
+    the less the image changes between two frames, the easier it is to
+    follow points across them.
 
-    The dataset stores frames as a linked list: each record has a 'next'
-    token pointing at the frame after it. We start at the scene's first
-    keyframe and walk forward until we leave the scene.
-
-    Returns
-    -------
-    utimes : (N,) int64 array of timestamps in microseconds
-    paths  : list of N image file paths
-    camera : dict describing the camera, see camera_geometry()
+    Returns a dict:
+      name, description
+      utimes : (N,) int64 array of frame timestamps in microseconds
+      paths  : list of N image file paths (the files may not be on disk)
+      camera : dict describing the camera, see camera_geometry()
     """
-    scene = find_scene(nusc, scene_name)
-    first_sample = nusc.get("sample", scene["first_sample_token"])
-    token = first_sample["data"][CAMERA]
+    path = os.path.join(INDEX_DIR, f"{scene_name}.json")
+    if not os.path.exists(path):
+        raise ValueError(f"No index file for {scene_name}. Run: python build_index.py")
+    with open(path) as f:
+        entry = json.load(f)
 
-    utimes, paths = [], []
-    calib_token = None
-    while token:
-        frame = nusc.get("sample_data", token)
-        # The chain can run on into the next scene of the same drive, so
-        # stop as soon as a frame belongs to a different scene.
-        owner = nusc.get("sample", frame["sample_token"])
-        if owner["scene_token"] != scene["token"]:
-            break
-        utimes.append(frame["timestamp"])
-        paths.append(os.path.join(nusc.dataroot, frame["filename"]))
-        calib_token = frame["calibrated_sensor_token"]
-        token = frame["next"]
+    camera = entry["camera"]
+    for key in ("K", "forward", "up"):
+        camera[key] = np.array(camera[key], dtype=np.float64)
+    return {
+        "name": entry["name"],
+        "description": entry["description"],
+        "utimes": np.array(entry["utimes"], dtype=np.int64),
+        "paths": [os.path.join(DATA_ROOT, f) for f in entry["files"]],
+        "camera": camera,
+    }
 
-    camera = camera_geometry(nusc.get("calibrated_sensor", calib_token))
-    return np.array(utimes, dtype=np.int64), paths, camera
+
+def images_on_disk(scene):
+    """True if every frame of the scene has been downloaded."""
+    return all(os.path.exists(p) for p in scene["paths"])
 
 
 def camera_geometry(calib):
