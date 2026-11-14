@@ -26,16 +26,14 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from nuscenes.can_bus.can_bus_api import NuScenesCanBus
-from nuscenes.nuscenes import NuScenes
 
 from attacks import drift_attack, offset_attack, replay_attack
 from camera_cache import camera_motion_for_scene
 from detector import SMOOTH_FRAMES, rolling_median
 from residuals import compute_residuals
-from scene_io import find_scene, load_can_pose
+from scene_io import DATA_ROOT, load_can_pose, load_scene
+from scene_sets import usable_scenes
 
-DATA_ROOT = "data/nuscenes"
-VERSION = "v1.0-mini"
 OUT_DIR = "out"
 
 # The attack window and strengths used for the example figure. These are
@@ -46,12 +44,12 @@ OFFSET_FACTOR = 0.7  # report 30 percent less speed
 DRIFT_RATE = -0.05  # lose 5 percent more per second
 REPLAY_SOURCE = 0.0  # replay the scene's opening seconds
 
-def clean_noise_table(nusc, nusc_can):
-    """Size of the residuals on every scene with no attack present."""
+def clean_noise_table(nusc_can):
+    """Size of the residuals on every usable scene with no attack present."""
     rows = []
-    for scene in nusc.scene:
+    for scene in usable_scenes(nusc_can):
         name = scene["name"]
-        cam = camera_motion_for_scene(nusc, name)
+        cam = camera_motion_for_scene(name)
         res = compute_residuals(cam, load_can_pose(nusc_can, name))
         speed = res["speed"][np.isfinite(res["speed"])]
         yaw = res["yaw"][np.isfinite(res["yaw"])]
@@ -59,7 +57,7 @@ def clean_noise_table(nusc, nusc_can):
         yaw_smooth = rolling_median(res["yaw"], SMOOTH_FRAMES)
         rows.append({
             "scene": name,
-            "night": scene["description"].lower().startswith("night"),
+            "condition": scene["condition"],
             # Typical offset: negative means the camera reads faster than CAN.
             "speed_bias": float(np.median(speed)),
             # 95 percent of frames have a residual smaller than this.
@@ -72,8 +70,8 @@ def clean_noise_table(nusc, nusc_can):
     return rows
 
 
-def attack_figure(nusc, nusc_can, scene_name):
-    cam = camera_motion_for_scene(nusc, scene_name)
+def attack_figure(nusc_can, scene_name):
+    cam = camera_motion_for_scene(scene_name)
     clean = load_can_pose(nusc_can, scene_name)
     no_attack = np.zeros(len(clean["utime"]), dtype=bool)
 
@@ -126,7 +124,7 @@ def attack_figure(nusc, nusc_can, scene_name):
         ax.grid(alpha=0.25)
         ax.spines[["top", "right"]].set_visible(False)
 
-    description = find_scene(nusc, scene_name)["description"][:70]
+    description = load_scene(scene_name)["description"][:70]
     fig.suptitle(f"{scene_name}: {description}\nshaded = attack active", fontsize=11)
     fig.tight_layout()
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -138,14 +136,13 @@ def attack_figure(nusc, nusc_can, scene_name):
 
 def main():
     scene_name = sys.argv[1] if len(sys.argv) > 1 else "scene-0103"
-    nusc = NuScenes(version=VERSION, dataroot=DATA_ROOT, verbose=False)
     nusc_can = NuScenesCanBus(dataroot=DATA_ROOT)
 
-    rows = clean_noise_table(nusc, nusc_can)
+    rows = clean_noise_table(nusc_can)
     print("Residuals with no attack present")
-    print("scene        night  speed bias  speed p95  speed 1s max   yaw p95  yaw 1s max")
+    print("scene       condition   speed bias  speed p95  speed 1s max   yaw p95  yaw 1s max")
     for r in rows:
-        print(f"{r['scene']}  {str(r['night']):5}  {r['speed_bias']:+10.3f}  {r['speed_p95']:9.2f}"
+        print(f"{r['scene']}  {r['condition']:10}  {r['speed_bias']:+10.3f}  {r['speed_p95']:9.2f}"
               f"  {r['speed_smooth_max']:12.2f}  {r['yaw_p95']:8.4f}  {r['yaw_smooth_max']:10.4f}")
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -155,7 +152,7 @@ def main():
         writer.writeheader()
         writer.writerows(rows)
 
-    figure_path = attack_figure(nusc, nusc_can, scene_name)
+    figure_path = attack_figure(nusc_can, scene_name)
     print(f"\nwrote {csv_path}\nwrote {figure_path}")
 
 
