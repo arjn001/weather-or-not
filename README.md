@@ -16,4 +16,13 @@ badly that fails, and asks whether the two causes can be told apart.
 - `PROJECT_BRIEF.md` — what we are building and why. Read first.
 - `PROGRESS.md` — what has actually been done. Read second.
 
-Nothing is implemented yet.
+## Running it
+
+```bash
+conda activate weather
+python check_data.py            # confirms the data is readable
+python kill_gate.py scene-0061  # camera vs CAN plot for one scene
+python kill_gate.py all         # every scene, plus out/kill_gate.csv
+```
+
+Plots land in `out/`.
