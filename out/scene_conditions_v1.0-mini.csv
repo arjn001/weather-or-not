@@ -1,0 +1,11 @@
+scene,night,rain,wet_road,description
+scene-0061,False,False,False,"Parked truck, construction, intersection, turn left, following a van"
+scene-0103,False,False,False,"Many peds right, wait for turning car, long bike rack left, cyclist"
+scene-0553,False,False,False,"Wait at intersection, bicycle, large truck, peds crossing crosswalk, ped with stroller"
+scene-0655,False,False,False,"Parking lot, parked cars, jaywalker, bendy bus, gardening vehicles"
+scene-0757,False,False,False,"Arrive at busy intersection, bus, wait at intersection, bicycle, peds"
+scene-0796,False,False,False,"Scooter, peds on sidewalk, bus, cars, truck, fake construction worker, bicycle, cross intersection, car overtaking us"
+scene-0916,False,False,False,"Parking lot, bicycle rack, parked bicycles, bus, many peds, parked scooters, parked motorcycle"
+scene-1077,True,False,False,"Night, big street, bus stop, high speed, construction vehicle"
+scene-1094,True,False,True,"Night, after rain, many peds, PMD, ped with bag, jaywalker, truck, scooter"
+scene-1100,True,False,False,"Night, peds in sidewalk, peds cross crosswalk, scooter, PMD, difficult lighting"
