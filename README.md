@@ -33,6 +33,7 @@ python false_alarm_eval.py      # Step 3: false alarms in rain and at night
 python attribution_eval.py      # Step 4: nominal vs degraded vs attack classifier
 python attribution_robustness.py  # Step 4 repeated over 8 random splits
 python verify_gate_eval.py      # Step 4, second design: "cannot verify" gate
+python combined_eval.py         # Step 4, third design: gate plus learned detector
 ```
 
 Plots and tables land in `out/`. `data/`, `index/` and `cache/` are not in
