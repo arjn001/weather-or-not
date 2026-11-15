@@ -217,3 +217,26 @@ def test_to_matrix_returns_features_and_labels_in_order():
     X, y = af.to_matrix(rows, ["b", "a"])
     assert X.tolist() == [[2.0, 1.0], [4.0, 3.0]]
     assert y.tolist() == ["attack", "nominal"]
+
+
+# ----------------------------------------------------------- "cannot verify"
+
+def test_gate_never_sees_can_or_the_disagreement():
+    # The whole safety argument for the gate rests on this: every input must
+    # come from the image alone, so an attacker on the CAN bus cannot move it.
+    from verify_gate_eval import GATE_FEATURES
+
+    assert GATE_FEATURES, "the gate needs at least one input"
+    for name in GATE_FEATURES:
+        assert not name.startswith("res_")
+        assert "can" not in name and "speed" not in name and "yaw" not in name
+
+
+def test_conditions_fold_into_three_reporting_groups():
+    from verify_gate_eval import group_of
+
+    assert group_of("clear") == "clear"
+    assert group_of("rain") == "rain"
+    assert group_of("wet") == "rain"
+    assert group_of("night") == "night"
+    assert group_of("night+rain") == "night"
