@@ -11,8 +11,8 @@ it, so the images do not have to be kept around afterwards.
 
 Raw values differ a lot between scenes for reasons that have nothing to do
 with degradation: a street full of signs and windows is "sharper" than an
-empty road. Later steps compare each value against the same scene's opening
-seconds instead of using it directly (brief section 6, lesson 3).
+empty road. Later steps compare each value against its typical value in
+clear weather instead of using it directly.
 """
 
 import cv2

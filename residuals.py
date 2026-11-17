@@ -3,7 +3,7 @@ Turning camera and CAN into a disagreement signal.
 
 The "residual" is how far the CAN bus is from what the camera saw. It is
 the raw material for every detector in this project. Two channels, kept
-separate on purpose (brief section 6, lesson 2):
+separate on purpose:
 
   speed residual : RELATIVE. (CAN - camera) / (the larger of the two).
                    A value of -0.2 means CAN reports 20 percent less speed
@@ -46,7 +46,7 @@ def compute_residuals(cam, can, speed_scale=1.0):
         applies no correction.
 
     CAN is first brought onto the camera's timeline with nearest-neighbour
-    resampling (brief section 6, lesson 4).
+    resampling (see nearest_resample in scene_io.py for why).
 
     Returns a dict with one entry per camera frame pair:
       t         : seconds since the first frame of the scene

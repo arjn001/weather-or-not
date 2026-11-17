@@ -129,7 +129,7 @@ def nearest_resample(src_utime, src_values, target_utime):
     For each target time we take the source reading closest to it. We do
     this instead of linear interpolation on purpose: interpolation smooths
     sudden jumps, and a sudden jump is exactly what an injected attack
-    looks like. See lesson 4 in section 6 of the brief.
+    looks like.
     """
     idx = np.searchsorted(src_utime, target_utime)
     idx = np.clip(idx, 1, len(src_utime) - 1)

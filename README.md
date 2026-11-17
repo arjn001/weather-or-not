@@ -45,9 +45,6 @@ Supporting files:
 | `check_data.py` | Confirms the dataset and CAN expansion are readable. |
 | `tests/` | 44 quick checks on made-up signals. No dataset needed. |
 
-`PROJECT_BRIEF.md` is the original plan. `PROGRESS.md` is the lab notebook:
-every experiment, its numbers, and what did not work.
-
 ## Data
 
 [nuScenes](https://www.nuscenes.org) with its CAN bus expansion. Front
@@ -118,7 +115,7 @@ set a detector up and to test it.
 
 ## Results in brief
 
-Full numbers and caveats are in `PROGRESS.md`.
+Each script prints its full table when run.
 
 - **The camera agrees with the CAN bus in clear daytime.** Speed correlation
   0.98 and turn rate correlation 0.99 on the reference scene. The camera
