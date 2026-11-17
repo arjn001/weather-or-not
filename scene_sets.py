@@ -8,7 +8,7 @@ A scene is usable when two things hold:
 The second check matters because the nuScenes documentation calls the CAN
 data experimental. Some scenes have none, some have gaps. If those slipped
 through they would show up later as mysterious NaNs or fake "disagreement"
-that has nothing to do with attacks or weather (brief section 5).
+that has nothing to do with attacks or weather.
 """
 
 import numpy as np

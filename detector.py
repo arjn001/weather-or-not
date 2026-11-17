@@ -50,7 +50,8 @@ def alarm_scores(cam, can, speed_scale=1.0, smooth_frames=SMOOTH_FRAMES):
       t     : seconds since the first frame
       speed : size of the smoothed relative speed residual, 0 to 1
       yaw   : size of the smoothed yaw residual, rad/s
-    The two channels are kept separate (brief section 6, lesson 2).
+    The two channels are kept separate because they are different kinds of
+    measurement: yaw needs no depth, speed does.
     """
     res = compute_residuals(cam, can, speed_scale)
     return {

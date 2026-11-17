@@ -12,7 +12,7 @@ download, no images.
 Writes out/scene_conditions_<version>.csv with one row per scene.
 
 The answer caps the whole benign-degradation side of the project: we cannot
-test on more real rain and night scenes than exist (brief section 7).
+test on more real rain and night scenes than exist.
 """
 
 import csv

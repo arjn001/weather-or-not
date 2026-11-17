@@ -13,8 +13,8 @@ from the calibration half, about 5 percent false alarms):
      7 second attack window.
 
 For each strength it reports the share of attacked frames that raise an
-alarm. The drift sweep answers the question in section 6 of the brief: how
-slowly must an attacker ramp to stay under the detector?
+alarm. The drift sweep answers a practical question: how slowly must an
+attacker ramp to stay under the detector?
 
 Writes out/strength_sweep.csv and out/strength_sweep.png.
 """
